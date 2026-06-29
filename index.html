@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#06070a" />
+  <title>Gul Hameed | Security Engineer, Web2 &amp; Web3 Auditor</title>
+  <meta name="description" content="Gul Hameed (gdroz3r): senior security engineer and Web2 &amp; Web3 auditor. Web, mobile and API pentesting, CEX platform assessments, and smart contract audits across 9+ blockchain ecosystems." />
+  <meta name="author" content="Gul Hameed" />
+
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Gul Hameed | Security Engineer, Web2 &amp; Web3 Auditor" />
+  <meta property="og:description" content="Web, mobile and API pentesting, CEX platform assessments, and smart contract audits across EVM, Solana, Cosmos, TON, NEAR, ICP, Aptos, Fuel and Canton." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:creator" content="@CyberGul" />
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2306070a'/><text x='50' y='68' font-size='58' font-family='monospace' font-weight='700' text-anchor='middle' fill='%2300ffa3'>%3E_</text></svg>" />
+
+  <!-- Fonts (graceful fallback to system fonts when offline) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Custom cursor -->
+  <div class="cursor-dot" aria-hidden="true"></div>
+  <div class="cursor-ring" aria-hidden="true"></div>
+
+  <!-- Scroll progress -->
+  <div class="scroll-progress" aria-hidden="true"></div>
+
+  <!-- Background layers -->
+  <canvas class="bg-rain" aria-hidden="true"></canvas>
+  <div class="bg-aurora" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <!-- Preloader -->
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <div class="preloader__terminal">
+      <span class="preloader__prompt">gul@security</span>:<span class="preloader__path">~</span>$ <span class="preloader__cmd" id="preCmd"></span><span class="preloader__cursor">█</span>
+      <div class="preloader__out" id="preOut"></div>
+    </div>
+  </div>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav" id="nav">
+    <a href="#hero" class="nav__brand" data-cursor="pointer">
+      <span class="nav__logo">&gt;_</span>
+      <span class="nav__name">gul<span class="accent">hameed</span></span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#about" data-cursor="pointer">About</a>
+      <a href="#expertise" data-cursor="pointer">Expertise</a>
+      <a href="#work" data-cursor="pointer">Work</a>
+      <a href="#tools" data-cursor="pointer">Tools</a>
+      <a href="#writing" data-cursor="pointer">Writing</a>
+      <a href="#contact" data-cursor="pointer">Contact</a>
+    </nav>
+    <a href="https://github.com/gdroz3r" target="_blank" rel="noopener" class="nav__cta" data-cursor="pointer" aria-label="View my full GitHub profile (opens in a new tab)">
+      <svg class="nav__cta-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span>View my GitHub</span>
+      <svg class="nav__cta-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>
+    </a>
+    <button class="nav__burger" id="burger" aria-label="Menu" data-cursor="pointer"><span></span><span></span></button>
+  </header>
+
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#about">About</a>
+    <a href="#expertise">Expertise</a>
+    <a href="#work">Work</a>
+    <a href="#tools">Tools</a>
+    <a href="#writing">Writing</a>
+    <a href="#contact">Contact</a>
+    <a href="https://github.com/gdroz3r" target="_blank" rel="noopener" class="mobile-menu__cta">View my GitHub ↗</a>
+  </div>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="hero">
+      <div class="hero__inner">
+        <div class="hero__left">
+          <div class="status-pill reveal" data-cursor="pointer">
+            <span class="status-dot"></span>
+            Available for security engagements
+          </div>
+
+          <h1 class="hero__title">
+            <span class="reveal" style="--d:.05s">Gul</span>
+            <span class="reveal hero__title-accent" style="--d:.12s">Hameed</span>
+          </h1>
+
+          <p class="hero__role reveal" style="--d:.2s">
+            <span class="hero__bracket">[</span>
+            <span id="typed"></span><span class="type-caret">▌</span>
+            <span class="hero__bracket">]</span>
+          </p>
+
+          <p class="hero__desc reveal" style="--d:.28s">
+            I break things before attackers do. A senior security engineer working across the
+            full offensive stack: <strong>web, mobile and API</strong> penetration testing,
+            <strong>centralized exchange</strong> assessments, and deep <strong>smart contract
+            audits</strong> across 9+ blockchain ecosystems.
+          </p>
+
+          <div class="hero__actions reveal" style="--d:.36s">
+            <a href="#work" class="btn btn--primary magnetic" data-cursor="pointer">
+              View audit work
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#contact" class="btn btn--ghost magnetic" data-cursor="pointer">Get in touch</a>
+          </div>
+
+          <div class="hero__socials reveal" style="--d:.44s">
+            <a href="https://github.com/gdroz3r" target="_blank" rel="noopener" data-cursor="pointer" aria-label="GitHub">GitHub</a>
+            <span class="dot-sep"></span>
+            <a href="https://twitter.com/CyberGul" target="_blank" rel="noopener" data-cursor="pointer" aria-label="Twitter / X">@CyberGul</a>
+            <span class="dot-sep"></span>
+            <a href="https://t.me/guldozer" target="_blank" rel="noopener" data-cursor="pointer" aria-label="Telegram">@guldozer</a>
+          </div>
+        </div>
+
+        <!-- Terminal card -->
+        <div class="hero__right reveal" style="--d:.3s">
+          <div class="terminal magnetic-soft" data-cursor="pointer">
+            <div class="terminal__bar">
+              <span class="terminal__btn red"></span>
+              <span class="terminal__btn yellow"></span>
+              <span class="terminal__btn green"></span>
+              <span class="terminal__title">gul@security: ~/audits</span>
+            </div>
+            <div class="terminal__body" id="heroTerminal">
+              <p><span class="t-prompt">➜</span> <span class="t-path">~</span> whoami</p>
+              <p class="t-out">gul_hameed <span class="t-dim">// senior security engineer</span></p>
+              <p><span class="t-prompt">➜</span> <span class="t-path">~</span> cat profile.json</p>
+              <p class="t-out">{</p>
+              <p class="t-out">  <span class="t-key">"role"</span>: <span class="t-str">"Security Engineer"</span>,</p>
+              <p class="t-out">  <span class="t-key">"at"</span>: [<span class="t-str">"BlockApex"</span>, <span class="t-str">"Hacken"</span>],</p>
+              <p class="t-out">  <span class="t-key">"covers"</span>: [<span class="t-str">"web"</span>, <span class="t-str">"mobile"</span>, <span class="t-str">"api"</span>, <span class="t-str">"web3"</span>],</p>
+              <p class="t-out">  <span class="t-key">"ecosystems"</span>: <span class="t-num">9</span></p>
+              <p class="t-out">}</p>
+              <p><span class="t-prompt">➜</span> <span class="t-path">~</span> ./scan --target protocol<span class="type-caret">▌</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <a href="#about" class="hero__scroll" data-cursor="pointer" aria-label="Scroll down">
+        <span>scroll</span>
+        <span class="hero__scroll-line"></span>
+      </a>
+    </section>
+
+    <!-- ============ MARQUEE ============ -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span>EVM</span><span class="m-dot">✦</span><span>Solana</span><span class="m-dot">✦</span><span>Cosmos</span><span class="m-dot">✦</span><span>TON</span><span class="m-dot">✦</span><span>NEAR</span><span class="m-dot">✦</span><span>ICP</span><span class="m-dot">✦</span><span>Aptos</span><span class="m-dot">✦</span><span>Fuel</span><span class="m-dot">✦</span><span>Canton</span><span class="m-dot">✦</span>
+        <span>Web</span><span class="m-dot">✦</span><span>Mobile</span><span class="m-dot">✦</span><span>API</span><span class="m-dot">✦</span><span>CEX</span><span class="m-dot">✦</span><span>Solidity</span><span class="m-dot">✦</span><span>Rust</span><span class="m-dot">✦</span><span>Move</span><span class="m-dot">✦</span><span>Go</span><span class="m-dot">✦</span><span>DAML</span><span class="m-dot">✦</span>
+        <span>EVM</span><span class="m-dot">✦</span><span>Solana</span><span class="m-dot">✦</span><span>Cosmos</span><span class="m-dot">✦</span><span>TON</span><span class="m-dot">✦</span><span>NEAR</span><span class="m-dot">✦</span><span>ICP</span><span class="m-dot">✦</span><span>Aptos</span><span class="m-dot">✦</span><span>Fuel</span><span class="m-dot">✦</span><span>Canton</span><span class="m-dot">✦</span>
+        <span>Web</span><span class="m-dot">✦</span><span>Mobile</span><span class="m-dot">✦</span><span>API</span><span class="m-dot">✦</span><span>CEX</span><span class="m-dot">✦</span><span>Solidity</span><span class="m-dot">✦</span><span>Rust</span><span class="m-dot">✦</span><span>Move</span><span class="m-dot">✦</span><span>Go</span><span class="m-dot">✦</span><span>DAML</span><span class="m-dot">✦</span>
+      </div>
+    </div>
+
+    <!-- ============ STATS ============ -->
+    <section class="stats">
+      <div class="stats__grid">
+        <div class="stat reveal">
+          <div class="stat__num" data-count="9" data-suffix="+">0</div>
+          <div class="stat__label">Blockchain ecosystems</div>
+        </div>
+        <div class="stat reveal" style="--d:.08s">
+          <div class="stat__num" data-count="9" data-suffix="">0</div>
+          <div class="stat__label">Smart contract languages</div>
+        </div>
+        <div class="stat reveal" style="--d:.16s">
+          <div class="stat__num" data-count="3" data-suffix="">0</div>
+          <div class="stat__label">Offensive security certs</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="section" id="about">
+      <div class="section__head reveal">
+        <span class="section__index">01</span>
+        <h2 class="section__title">Who's behind the keyboard</h2>
+      </div>
+
+      <div class="about">
+        <div class="about__bio reveal">
+          <p>I'm <strong>Gul Hameed</strong>, a senior security engineer who lives where
+          <span class="hl">Web2 application security</span> meets
+          <span class="hl">Web3 protocol auditing</span>. My job is easy to say and hard to do:
+          find the bug that drains the vault, or owns the server, before someone else does.</p>
+
+          <p>My work isn't only on-chain. I run full <strong>web, mobile and API</strong>
+          security assessments, and with <strong>Hacken</strong> I've audited the platforms
+          behind <strong>centralized exchanges</strong>: web apps, APIs and the infrastructure
+          around them.</p>
+
+          <p>On-chain, I research Web3 security at <strong>BlockApex</strong> and audit dApps at
+          <strong>Hacken</strong>. I've shipped audits for bridges, perpetuals, AMMs, lending
+          markets, stablecoins, liquid staking tokens, oracles, launchpads and full appchain
+          architectures, with a handful of valid findings on Cantina and HackenProof. On top of
+          that I build the tooling that makes audits faster, I write, and I speak.</p>
+        </div>
+
+        <aside class="about__panel reveal" style="--d:.12s">
+          <div class="about__row">
+            <span class="about__k">Currently</span>
+            <span class="about__v">Web3 Security Researcher · BlockApex</span>
+          </div>
+          <div class="about__row">
+            <span class="about__k">Also</span>
+            <span class="about__v">dApp Auditor · Hacken</span>
+          </div>
+          <div class="about__row">
+            <span class="about__k">Coverage</span>
+            <span class="about__v">Web · Mobile · API · CEX · Web3</span>
+          </div>
+          <div class="about__row">
+            <span class="about__k">Bug bounty</span>
+            <span class="about__v"><a href="https://cantina.xyz/u/CyberGul" target="_blank" rel="noopener" class="about__link" data-cursor="pointer">Cantina</a> · <a href="https://hackenproof.com/hackers/gul" target="_blank" rel="noopener" class="about__link" data-cursor="pointer">HackenProof</a> · <a href="https://r.xyz/glider-query-database/leaderboard" target="_blank" rel="noopener" class="about__link" data-cursor="pointer">Glider</a></span>
+          </div>
+          <div class="about__row">
+            <span class="about__k">Certs</span>
+            <span class="about__v">CEH Practical · eCPPTv2 · CRTP</span>
+          </div>
+          <div class="about__row">
+            <span class="about__k">Speaking</span>
+            <span class="about__v"><a href="https://www.linkedin.com/feed/update/urn:li:activity:7262477051218067457/" target="_blank" rel="noopener" class="about__link" data-cursor="pointer">ICP Security · Thailand</a></span>
+          </div>
+          <div class="about__row about__row--last">
+            <span class="about__k">Based</span>
+            <span class="about__v">Remote · Worldwide</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============ EXPERTISE / ECOSYSTEMS ============ -->
+    <section class="section" id="expertise">
+      <div class="section__head reveal">
+        <span class="section__index">02</span>
+        <h2 class="section__title">Ecosystems I hunt in</h2>
+        <p class="section__sub">Nine chains, nine threat models. Each one has its own VM and its own footguns.</p>
+      </div>
+
+      <div class="chains">
+        <article class="chain tilt reveal" style="--c:#627eea" data-cursor="pointer">
+          <div class="chain__mono">Ξ</div>
+          <h3>EVM</h3>
+          <p>Solidity reentrancy, delegatecall, oracle and bridge logic.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#14f195;--d:.05s" data-cursor="pointer">
+          <div class="chain__mono">◎</div>
+          <h3>Solana</h3>
+          <p>Account validation, PDAs, CPIs, perps and launchpads.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#6f74ff;--d:.1s" data-cursor="pointer">
+          <div class="chain__mono">⌬</div>
+          <h3>Cosmos</h3>
+          <p>CosmWasm, appchains, IBC and module level invariants.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#0098ea;--d:.15s" data-cursor="pointer">
+          <div class="chain__mono">◈</div>
+          <h3>TON</h3>
+          <p>Func and Tact actors, async messages, pool staking.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#00ec97;--d:.05s" data-cursor="pointer">
+          <div class="chain__mono">Ⓝ</div>
+          <h3>NEAR</h3>
+          <p>Rust contracts, gas and cross contract callbacks.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#ff5b81;--d:.1s" data-cursor="pointer">
+          <div class="chain__mono">∞</div>
+          <h3>ICP</h3>
+          <p>Motoko and Rust canisters, inter-canister and cycles safety.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#ffffff;--d:.15s" data-cursor="pointer">
+          <div class="chain__mono">◬</div>
+          <h3>Aptos</h3>
+          <p>Move resources, the ability model and formal specs.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#00f58c;--d:.1s" data-cursor="pointer">
+          <div class="chain__mono">⛽</div>
+          <h3>Fuel</h3>
+          <p>Sway and the FuelVM, UTXO model and predicate logic.</p>
+        </article>
+        <article class="chain tilt reveal" style="--c:#3b82f6;--d:.15s" data-cursor="pointer">
+          <div class="chain__mono">⬡</div>
+          <h3>Canton</h3>
+          <p>DAML privacy model, sub transaction structure and rights.</p>
+        </article>
+      </div>
+
+      <!-- Skills -->
+      <div class="skills">
+        <div class="skills__col reveal">
+          <h4 class="skills__label">// Languages</h4>
+          <div class="tagcloud">
+            <span class="tag" data-cursor="pointer">Solidity</span>
+            <span class="tag" data-cursor="pointer">Rust</span>
+            <span class="tag" data-cursor="pointer">Move</span>
+            <span class="tag" data-cursor="pointer">Motoko</span>
+            <span class="tag" data-cursor="pointer">Tact</span>
+            <span class="tag" data-cursor="pointer">Func</span>
+            <span class="tag" data-cursor="pointer">Sway</span>
+            <span class="tag" data-cursor="pointer">Go</span>
+            <span class="tag" data-cursor="pointer">DAML</span>
+          </div>
+        </div>
+        <div class="skills__col reveal" style="--d:.1s">
+          <h4 class="skills__label">// Coverage &amp; domains</h4>
+          <div class="tagcloud">
+            <span class="tag" data-cursor="pointer">Web app pentest</span>
+            <span class="tag" data-cursor="pointer">Mobile</span>
+            <span class="tag" data-cursor="pointer">API security</span>
+            <span class="tag" data-cursor="pointer">CEX platforms</span>
+            <span class="tag" data-cursor="pointer">Bridges</span>
+            <span class="tag" data-cursor="pointer">Perpetuals</span>
+            <span class="tag" data-cursor="pointer">AMMs</span>
+            <span class="tag" data-cursor="pointer">Lending</span>
+            <span class="tag" data-cursor="pointer">Stablecoins</span>
+            <span class="tag" data-cursor="pointer">Liquid staking</span>
+            <span class="tag" data-cursor="pointer">Oracles</span>
+            <span class="tag" data-cursor="pointer">Launchpads</span>
+            <span class="tag" data-cursor="pointer">Appchains</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ WORK / AUDITS ============ -->
+    <section class="section" id="work">
+      <div class="section__head reveal">
+        <span class="section__index">03</span>
+        <h2 class="section__title">Selected audit work</h2>
+        <p class="section__sub">Smart contract and protocol audits across the stack. Tap a card to open the report.</p>
+      </div>
+
+      <div class="work">
+        <a href="https://github.com/BlockApex/Audit-Reports/blob/master/ADOT%20Finance-%20Final%20Audit%20Report.pdf" target="_blank" rel="noopener" class="work__card reveal" data-cursor="pointer">
+          <div class="work__top">
+            <span class="work__chain" style="--c:#627eea">EVM</span>
+            <span class="work__cat">DeFi · staking</span>
+          </div>
+          <h3 class="work__name">ADOT Finance</h3>
+          <p class="work__desc">DeFi protocol audit covering staking flows, reward distribution and access control across the contract suite.</p>
+          <span class="work__report">View report <span class="work__arrow">↗</span></span>
+        </a>
+
+        <a href="https://github.com/BlockApex/Audit-Reports/blob/master/Axone%20Blockchain%20-%20Final%20Audit%20Report.pdf" target="_blank" rel="noopener" class="work__card reveal" style="--d:.06s" data-cursor="pointer">
+          <div class="work__top">
+            <span class="work__chain" style="--c:#6f74ff">Cosmos</span>
+            <span class="work__cat">Appchain + contracts</span>
+          </div>
+          <h3 class="work__name">Axone</h3>
+          <p class="work__desc">Audited the Axone appchain and its CosmWasm contracts: module invariants, message handling and Data Hub logic.</p>
+          <span class="work__report">View report <span class="work__arrow">↗</span></span>
+        </a>
+
+        <a href="https://github.com/BlockApex/Audit-Reports/blob/master/EclipseFi%20-%20Staking%20v2%20Final%20Audit%20Report.pdf" target="_blank" rel="noopener" class="work__card reveal" style="--d:.12s" data-cursor="pointer">
+          <div class="work__top">
+            <span class="work__chain" style="--c:#7a83ff">Neutron</span>
+            <span class="work__cat">Launchpad · staking</span>
+          </div>
+          <h3 class="work__name">Eclipse Fi</h3>
+          <p class="work__desc">Launchpad staking v2 and vesting contracts on Neutron: reward math, lockups and vesting schedule integrity.</p>
+          <span class="work__report">View report <span class="work__arrow">↗</span></span>
+        </a>
+
+        <a href="https://github.com/BlockApex/Audit-Reports/blob/master/Gemz%20Final%20Audit%20Report.pdf" target="_blank" rel="noopener" class="work__card reveal" data-cursor="pointer">
+          <div class="work__top">
+            <span class="work__chain" style="--c:#a07bff">Web3</span>
+            <span class="work__cat">Smart contracts</span>
+          </div>
+          <h3 class="work__name">Gemz</h3>
+          <p class="work__desc">Smart contract audit of the Gemz protocol, reviewing token mechanics, core logic and access control.</p>
+          <span class="work__report">View report <span class="work__arrow">↗</span></span>
+        </a>
+
+        <a href="https://github.com/BlockApex/Audit-Reports/blob/master/MetaPool%20StakedICP%20Final%20Audit%20Report.pdf" target="_blank" rel="noopener" class="work__card reveal" style="--d:.06s" data-cursor="pointer">
+          <div class="work__top">
+            <span class="work__chain" style="--c:#ff5b81">ICP</span>
+            <span class="work__cat">Liquid staking</span>
+          </div>
+          <h3 class="work__name">Meta Pool</h3>
+          <p class="work__desc">Liquid staking audit (stICP) on the Internet Computer, part of Meta Pool's multichain LST suite.</p>
+          <span class="work__report">View report <span class="work__arrow">↗</span></span>
+        </a>
+
+        <a href="https://github.com/BlockApex/Audit-Reports/blob/master/NeroChain%20-%20Final%20Audit%20Report.pdf" target="_blank" rel="noopener" class="work__card reveal" style="--d:.12s" data-cursor="pointer">
+          <div class="work__top">
+            <span class="work__chain" style="--c:#2dd4bf">EVM L1</span>
+            <span class="work__cat">Account abstraction</span>
+          </div>
+          <h3 class="work__name">Nero Chain</h3>
+          <p class="work__desc">An EVM compatible L1 with native account abstraction. Reviewed core chain contracts and the AA paymaster flows.</p>
+          <span class="work__report">View report <span class="work__arrow">↗</span></span>
+        </a>
+
+        <a href="https://github.com/BlockApex/Audit-Reports/blob/master/Ember%20EARN%20Marketplace%20Final%20Audit%20Report.pdf" target="_blank" rel="noopener" class="work__card reveal" style="--d:.18s" data-cursor="pointer">
+          <div class="work__top">
+            <span class="work__chain" style="--c:#78d64b">Aurora</span>
+            <span class="work__cat">Marketplace + threat model</span>
+          </div>
+          <h3 class="work__name">Ember</h3>
+          <p class="work__desc">EARN marketplace and ENS audits on Aurora, plus a full protocol threat model mapping the attack surface.</p>
+          <span class="work__report">View report <span class="work__arrow">↗</span></span>
+        </a>
+
+        <a href="https://github.com/gdroz3r" target="_blank" rel="noopener" class="work__card work__card--more reveal" style="--d:.06s" data-cursor="pointer">
+          <svg class="work__more-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          <h3 class="work__name">30+ audits delivered</h3>
+          <p class="work__desc">These seven are highlights. See the full portfolio of 31 protocol audits on my GitHub.</p>
+          <span class="work__report">View all on GitHub <span class="work__arrow">↗</span></span>
+        </a>
+      </div>
+
+      <!-- Web2 / CEX -->
+      <div class="cexblock">
+        <div class="cexblock__head reveal">
+          <h3 class="cexblock__title">Web2 &amp; exchange security</h3>
+          <p class="cexblock__sub">Not everything lives on-chain. With Hacken I've assessed six centralized exchange platforms across web, API and mobile.</p>
+        </div>
+        <div class="cex">
+          <a href="https://hacken.io/audits/kcex/pt-kcex-web-api-mar2025/" target="_blank" rel="noopener" class="cex__card cex__card--linked reveal" data-cursor="pointer">
+            <span class="cex__name">KCEX</span>
+            <span class="cex__meta">Web &amp; API penetration test</span>
+            <span class="cex__report">View report ↗</span>
+          </a>
+          <div class="cex__card reveal" style="--d:.05s">
+            <span class="cex__name">MEXC</span>
+            <span class="cex__meta">Web &amp; API penetration test</span>
+            <span class="cex__report cex__report--nda">Hacken engagement</span>
+          </div>
+          <div class="cex__card reveal" style="--d:.1s">
+            <span class="cex__name">CoinEx</span>
+            <span class="cex__meta">Mobile app assessment</span>
+            <span class="cex__report cex__report--nda">Hacken engagement</span>
+          </div>
+          <div class="cex__card reveal" style="--d:.05s">
+            <span class="cex__name">MAICOIN</span>
+            <span class="cex__meta">Web &amp; API penetration test</span>
+            <span class="cex__report cex__report--nda">Hacken engagement</span>
+          </div>
+          <div class="cex__card reveal" style="--d:.1s">
+            <span class="cex__name">1money</span>
+            <span class="cex__meta">Web &amp; API penetration test</span>
+            <span class="cex__report cex__report--nda">Hacken engagement</span>
+          </div>
+          <div class="cex__card reveal" style="--d:.15s">
+            <span class="cex__name">J-CAM</span>
+            <span class="cex__meta">Web &amp; API penetration test</span>
+            <span class="cex__report cex__report--nda">Hacken engagement</span>
+          </div>
+          <a href="https://github.com/gdroz3r" target="_blank" rel="noopener" class="cex__card cex__card--more reveal" style="--d:.2s" data-cursor="pointer">
+            <div class="cex__more-text">
+              <span class="cex__name">20+ web2 projects</span>
+              <span class="cex__meta">Six exchanges here, plus web, mobile and API audits across more clients.</span>
+            </div>
+            <span class="cex__report">View all on GitHub ↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TOOLS / OSS ============ -->
+    <section class="section" id="tools">
+      <div class="section__head reveal">
+        <span class="section__index">04</span>
+        <h2 class="section__title">Open source &amp; tooling</h2>
+        <p class="section__sub">Security tools and learning resources I build and maintain.</p>
+      </div>
+
+      <div class="repos">
+        <a href="https://github.com/gdroz3r/drozer-lite" target="_blank" rel="noopener" class="repo reveal" data-cursor="pointer">
+          <div class="repo__head">
+            <svg class="repo__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+            <span class="repo__name">drozer-lite</span>
+            <span class="repo__star">★ 4</span>
+          </div>
+          <p class="repo__desc">Fast, deterministic Solidity pattern scanner derived from empirical audit gap analysis. An AI assisted smart contract vulnerability scanner.</p>
+          <div class="repo__tags"><span>Solidity</span><span>Static analysis</span><span>AI</span></div>
+        </a>
+
+        <a href="https://github.com/gdroz3r/Canton-daml-auditor-bootcamp" target="_blank" rel="noopener" class="repo reveal" style="--d:.06s" data-cursor="pointer">
+          <div class="repo__head">
+            <svg class="repo__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <span class="repo__name">Canton-daml-auditor-bootcamp</span>
+            <span class="repo__star">★ 10</span>
+          </div>
+          <p class="repo__desc">A learning track for auditing Canton and DAML: the privacy model, sub transaction rights and the common pitfalls.</p>
+          <div class="repo__tags"><span>DAML</span><span>Canton</span><span>Education</span></div>
+        </a>
+
+        <a href="https://github.com/gdroz3r/backend-security-review" target="_blank" rel="noopener" class="repo reveal" style="--d:.12s" data-cursor="pointer">
+          <div class="repo__head">
+            <svg class="repo__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            <span class="repo__name">backend-security-review</span>
+          </div>
+          <p class="repo__desc">Static security review skill for NestJS / Node backends (MongoDB, web3). A Claude Code CI gate built on OWASP ASVS and the API Security Top 10.</p>
+          <div class="repo__tags"><span>Node</span><span>OWASP ASVS</span><span>CI gate</span></div>
+        </a>
+
+        <a href="https://github.com/gdroz3r/mobile-security-review" target="_blank" rel="noopener" class="repo reveal" style="--d:.18s" data-cursor="pointer">
+          <div class="repo__head">
+            <svg class="repo__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+            <span class="repo__name">mobile-security-review</span>
+          </div>
+          <p class="repo__desc">Static security review skill for React Native / Expo apps. A Claude Code CI gate built on OWASP MASVS.</p>
+          <div class="repo__tags"><span>React Native</span><span>OWASP MASVS</span><span>CI gate</span></div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ WRITING ============ -->
+    <section class="section" id="writing">
+      <div class="section__head reveal">
+        <span class="section__index">05</span>
+        <h2 class="section__title">Writing &amp; research</h2>
+        <p class="section__sub">Methodology, deep dives and post-mortems from the front line.</p>
+      </div>
+
+      <ul class="writing">
+        <li class="writing__item reveal">
+          <span class="writing__tag">Guide</span>
+          <span class="writing__title">How to audit a dApp, end to end</span>
+        </li>
+        <li class="writing__item reveal" style="--d:.05s">
+          <span class="writing__tag">ICP</span>
+          <span class="writing__title">Securing ICP canisters: best practices and pitfalls</span>
+        </li>
+        <li class="writing__item reveal" style="--d:.1s">
+          <span class="writing__tag">Deep dive</span>
+          <span class="writing__title">Inside the Fuel VM, from a security lens</span>
+        </li>
+        <li class="writing__item reveal" style="--d:.15s">
+          <span class="writing__tag">Post-mortem</span>
+          <span class="writing__title">14+ DeFi exploit breakdowns, from Euler to SushiSwap</span>
+        </li>
+        <li class="writing__item reveal" style="--d:.2s">
+          <span class="writing__tag">Research</span>
+          <span class="writing__title">Web2 vulnerabilities in Web3 (hackathon winning)</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="section section--contact" id="contact">
+      <div class="contact">
+        <div class="contact__left reveal">
+          <span class="section__index">06</span>
+          <h2 class="contact__title">Let's secure<br><span class="accent">something.</span></h2>
+          <p class="contact__sub">Auditing a protocol, hardening an exchange, threat-modeling a launch, or just want a second pair of adversarial eyes? My inbox is open.</p>
+
+          <div class="contact__links">
+            <a href="https://github.com/gdroz3r" target="_blank" rel="noopener" class="contact__link magnetic" data-cursor="pointer">
+              <span>GitHub</span><span class="contact__handle">gdroz3r</span>
+            </a>
+            <a href="https://twitter.com/CyberGul" target="_blank" rel="noopener" class="contact__link magnetic" data-cursor="pointer">
+              <span>Twitter / X</span><span class="contact__handle">@CyberGul</span>
+            </a>
+            <a href="https://t.me/guldozer" target="_blank" rel="noopener" class="contact__link magnetic" data-cursor="pointer">
+              <span>Telegram</span><span class="contact__handle">@guldozer</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Interactive terminal -->
+        <div class="contact__right reveal" style="--d:.12s">
+          <div class="terminal terminal--live">
+            <div class="terminal__bar">
+              <span class="terminal__btn red"></span>
+              <span class="terminal__btn yellow"></span>
+              <span class="terminal__btn green"></span>
+              <span class="terminal__title">contact.sh · try a command</span>
+            </div>
+            <div class="terminal__body terminal__body--live" id="liveTerminal">
+              <p class="t-out t-dim">Type <span class="t-key">help</span> and hit enter. (try: whoami, skills, work, cex, contact)</p>
+              <div id="liveOut"></div>
+              <div class="terminal__input-line">
+                <span class="t-prompt">➜</span> <span class="t-path">~</span>
+                <input id="liveInput" class="terminal__input" type="text" autocomplete="off" spellcheck="false" aria-label="Terminal input" />
+                <span class="type-caret type-caret--input">▌</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="nav__logo">&gt;_</span>
+        <span>gul<span class="accent">hameed</span></span>
+      </div>
+      <p class="footer__copy">© <span id="year"></span> Gul Hameed. Built with a paranoid mindset and zero trackers.</p>
+      <button class="footer__top" id="toTop" data-cursor="pointer" aria-label="Back to top">↑ top</button>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
