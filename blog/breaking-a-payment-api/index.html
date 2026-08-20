@@ -425,11 +425,12 @@ insurance biller  amount = 1               <span class="bad">→ SETTLED</span> 
     <section class="post-sec">
       <div class="wrap">
         <span class="section-no">04 · The pattern</span>
-        <h2>None of these were exotic</h2>
+        <h2>Four endpoints, six bugs</h2>
         <p>
-          Each finding is one promise the API makes, and one request that breaks it. That is the whole
-          method. Map the payment as a state machine, list the promises it must keep, then try to make
-          each one false.
+          The whole test surface here was tiny: four endpoints. None of the six findings were exotic,
+          though. Each one is just a promise the API makes, and one request that breaks it. That is the
+          whole method. Map the payment as a state machine, list the promises it must keep, then try to
+          make each one false.
         </p>
         <p>
           These are not header or certificate bugs. They live in the order of the steps, in reads that
