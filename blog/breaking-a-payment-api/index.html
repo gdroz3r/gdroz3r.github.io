@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#06070a" />
+  <title>Breaking a Payment API | Gul Hameed</title>
+  <meta name="description" content="A black-box security assessment of a bill-payment API. Six business-logic bugs found by treating the API as a state machine and breaking one promise at a time. Anonymised writeup." />
+  <meta name="author" content="Gul Hameed" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Breaking a Payment API" />
+  <meta property="og:description" content="Six business-logic bugs in a bill-payment API, found by treating the API as a state machine." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:creator" content="@CyberGul" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2306070a'/><text x='50' y='68' font-size='58' font-family='monospace' font-weight='700' text-anchor='middle' fill='%2300ffa3'>%3E_</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+  :root{
+    --bg:#06070a; --bg-2:#0a0c11;
+    --surface:rgba(255,255,255,0.025); --surface-2:rgba(255,255,255,0.05);
+    --border:rgba(255,255,255,0.08); --border-2:rgba(255,255,255,0.14);
+    --text:#e8edf5; --text-soft:#b6bfce; --muted:#7d869a; --faint:#565e70;
+    --accent:#00ffa3; --accent-2:#38d6ff; --accent-3:#a07bff; --warn:#ffb454;
+    --violation:#ff6b6b; --violation-soft:rgba(255,107,107,0.12);
+    --accent-glow:rgba(0,255,163,0.35); --accent-soft:rgba(0,255,163,0.10);
+    --font-display:"Space Grotesk",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --maxw:1000px; --ease:cubic-bezier(0.16,1,0.3,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--text);
+    line-height:1.68;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  ::selection{background:var(--accent);color:#04110b}
+
+  /* background layers (CSS-only) */
+  .bg-aurora,.bg-grid,.bg-noise{position:fixed;inset:0;pointer-events:none}
+  .bg-aurora{z-index:-4;background:
+    radial-gradient(50% 50% at 18% 8%,rgba(0,255,163,0.09),transparent 70%),
+    radial-gradient(45% 45% at 85% 18%,rgba(56,214,255,0.08),transparent 70%),
+    radial-gradient(55% 55% at 70% 95%,rgba(160,123,255,0.09),transparent 70%);filter:blur(10px)}
+  .bg-grid{z-index:-3;background-image:
+    linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 25%,transparent 80%);
+            mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 25%,transparent 80%)}
+  .bg-noise{z-index:-1;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  /* nav */
+  .nav{position:sticky;top:0;z-index:900;display:flex;align-items:center;justify-content:space-between;
+    gap:16px;padding:13px clamp(18px,5vw,44px);
+    background:rgba(6,7,10,0.72);backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--border)}
+  .nav__brand{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-weight:700;font-size:15px;letter-spacing:-0.02em}
+  .nav__logo{color:var(--accent);text-shadow:0 0 16px var(--accent-glow)}
+  .nav__name .accent{color:var(--accent)}
+  .nav__links{display:flex;gap:22px;font-family:var(--font-mono);font-size:13px;color:var(--text-soft)}
+  .nav__links a{position:relative;transition:color .2s}
+  .nav__links a:hover{color:var(--accent)}
+  @media(max-width:520px){.nav__links{gap:16px;font-size:12px}}
+
+  main{display:block}
+  .wrap{max-width:720px;margin-inline:auto;padding-inline:24px}
+  .wide{max-width:1000px;margin-inline:auto;padding-inline:24px}
+  section.post-sec{padding-block:34px}
+  section.post-sec + section.post-sec{border-top:1px solid var(--border)}
+  p{margin:0 0 1.05em;max-width:66ch;color:var(--text-soft)}
+  strong{color:var(--text);font-weight:600}
+  em{font-style:italic;color:var(--text)}
+
+  .eyebrow{font-family:var(--font-mono);font-size:.72rem;font-weight:500;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 16px}
+  h1{font-family:var(--font-display);font-weight:700;font-size:clamp(2.4rem,6vw,4rem);
+    line-height:1.02;letter-spacing:-.03em;color:var(--text);margin:0 0 .45em}
+  h2{font-family:var(--font-display);font-weight:600;font-size:clamp(1.6rem,3.6vw,2.2rem);
+    line-height:1.1;letter-spacing:-.02em;color:var(--text);margin:0 0 .6em}
+  h3{font-family:var(--font-display);font-weight:600;font-size:1.32rem;letter-spacing:-.015em;color:var(--text);margin:0 0 6px}
+  .section-no{font-family:var(--font-mono);font-size:.72rem;font-weight:500;letter-spacing:.2em;
+    color:var(--accent);text-transform:uppercase;display:block;margin:0 0 10px}
+
+  /* hero */
+  .hero{padding-block:64px 42px}
+  .standfirst{font-family:var(--font-body);font-size:1.22rem;line-height:1.62;color:var(--text-soft);max-width:60ch;margin:0 0 1.6em}
+  .standfirst em{color:var(--accent);font-style:normal}
+  .meta{display:flex;flex-wrap:wrap;gap:9px;align-items:center;
+    font-family:var(--font-mono);font-size:.72rem;color:var(--muted);letter-spacing:.02em}
+  .meta .tag{border:1px solid var(--border-2);border-radius:100px;padding:4px 12px;white-space:nowrap}
+  .meta .tag.accent{color:var(--accent);border-color:rgba(0,255,163,0.4);background:var(--accent-soft)}
+
+  /* state chips */
+  .st{font-family:var(--font-mono);font-size:.78em;font-weight:500;padding:1px 7px;border-radius:5px;
+    border:1px solid var(--border);background:var(--surface-2);white-space:nowrap}
+  .st.pending{color:var(--muted)}
+  .st.submit{color:var(--accent-2);border-color:rgba(56,214,255,0.35)}
+  .st.settle{color:var(--accent);border-color:rgba(0,255,163,0.35)}
+  .st.fail{color:var(--violation);border-color:rgba(255,107,107,0.4);background:var(--violation-soft)}
+
+  /* callout */
+  .callout{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);
+    border-radius:12px;padding:18px 22px;margin:1.7em 0}
+  .callout .lab{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 6px}
+  .callout p{margin:0;color:var(--text-soft)}
+
+  /* findings */
+  .finding{border-top:1px solid var(--border);padding-top:28px;margin-top:32px}
+  .finding:first-of-type{border-top:0;margin-top:16px;padding-top:0}
+  .f-num{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--violation);margin:0 0 10px}
+  .finding h3{margin:0 0 8px}
+  .rule-line{font-family:var(--font-mono);font-size:.9rem;color:var(--muted);margin:0 0 1.2em}
+  .rule-line b{color:var(--accent);font-weight:500}
+  .finding p{margin:0 0 .9em;color:var(--text-soft)}
+  .lead{font-weight:600;color:var(--text);font-family:var(--font-body)}
+
+  /* traces */
+  .trace{background:linear-gradient(180deg,rgba(13,16,22,0.9),rgba(8,10,14,0.9));
+    border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:1.3em 0;overflow-x:auto;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.03)}
+  .trace pre{margin:0;font-family:var(--font-mono);font-size:.82rem;line-height:1.85;color:var(--text-soft);
+    white-space:pre;font-variant-numeric:tabular-nums}
+  .trace .c{color:var(--faint)}
+  .trace .good{color:var(--accent)}
+  .trace .bad{color:var(--violation)}
+  .trace .op{color:var(--accent-2)}
+
+  /* figures */
+  figure{margin:2.2em 0}
+  figure svg{display:block;width:100%;height:auto;color:var(--text)}
+  .figbox{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 20px;overflow-x:auto}
+  .d-node{fill:rgba(255,255,255,0.02);stroke:var(--text-soft);stroke-width:1.4}
+  .d-node.target{stroke:var(--accent);stroke-width:2;fill:var(--accent-soft)}
+  .d-node.faded{opacity:.5;stroke-dasharray:4 3}
+  .d-label{fill:var(--text);font-family:var(--font-display);font-size:14px;font-weight:600}
+  .d-sub{fill:var(--muted);font-family:var(--font-mono);font-size:11px}
+  .d-edge{stroke:var(--text-soft);stroke-width:1.6;fill:none;opacity:.8}
+  .d-arrow{fill:var(--text-soft)}
+  .d-arrow-bad{fill:var(--violation)}
+  .d-edge-bad{stroke:var(--violation);stroke-width:1.8;fill:none;stroke-dasharray:6 4}
+  .d-elabel{fill:var(--text-soft);font-family:var(--font-mono);font-size:11px}
+  .d-elabel-bad{fill:var(--violation);font-family:var(--font-mono);font-size:11px;font-weight:500}
+  .d-band{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.2;stroke-dasharray:5 4}
+  .d-bandlab{fill:var(--accent);font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:.04em}
+
+  /* footer */
+  .footer{border-top:1px solid var(--border);background:var(--bg-2);margin-top:20px}
+  .footer__inner{max-width:var(--maxw);margin:0 auto;padding:32px clamp(18px,5vw,44px);
+    display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .footer__brand{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-weight:700;font-size:15px}
+  .footer__brand .accent{color:var(--accent)}
+  .footer__copy{font-family:var(--font-mono);font-size:12.5px;color:var(--muted)}
+  .anon{max-width:720px;margin:0 auto;padding:6px 24px 0}
+  .anon p{font-size:.86rem;color:var(--muted);max-width:none}
+  .anon b{color:var(--text-soft)}
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+  @media(max-width:560px){body{font-size:15.5px}}
+  </style>
+</head>
+<body>
+  <div class="bg-aurora" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <header class="nav">
+    <a href="/" class="nav__brand" aria-label="Gul Hameed home">
+      <span class="nav__logo">&gt;_</span>
+      <span class="nav__name">gul<span class="accent">hameed</span></span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/blog/">Blog</a>
+      <a href="https://github.com/gdroz3r" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="post-sec hero">
+      <div class="wrap">
+        <p class="eyebrow">API security · business logic</p>
+        <h1>Breaking a Payment API</h1>
+        <p class="standfirst">
+          I tested the API behind a bill-payment service. The bugs that mattered were in the
+          <em>workflow</em>: the order of the steps, what a simple &ldquo;read&rdquo; quietly changed,
+          and what happened when two requests arrived at once. Here is how I found six of them by
+          treating the API as a state machine.
+        </p>
+        <div class="meta">
+          <span class="tag accent">Anonymised writeup</span>
+          <span class="tag">Black-box</span>
+          <span class="tag">One test credential</span>
+          <span class="tag">~8 min read</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. SETUP -->
+    <section class="post-sec">
+      <div class="wrap">
+        <span class="section-no">01 · The setup</span>
+        <h2>Three parties, one target</h2>
+        <p>
+          A bill-payment aggregator sits in the middle of a chain that moves money. On one end is a
+          <strong>merchant</strong>: here, a bank whose app lets customers pay bills. In the middle is the
+          <strong>aggregator</strong>, one API that takes each payment and passes it on. On the far end
+          are the <strong>billers</strong>, the top-up, electricity, insurance, and mobile-money services
+          that actually fulfil the payment.
+        </p>
+        <p>
+          I was allowed to test the aggregator only. Not the bank&rsquo;s app, not the customer, not the
+          billers. So the whole test surface is the link between the merchant and the aggregator.
+        </p>
+        <p>
+          Every request carried two sets of credentials. One identified the merchant (in the headers),
+          and one picked the biller (in the body). The second set looked like a second password. It
+          wasn&rsquo;t. Those biller keys were the same for every merchant, and were handed out by a
+          public list endpoint. So the only real gate is the merchant credential. Worth remembering.
+        </p>
+        <p>
+          Before sending any live traffic, I had a saved copy of the API&rsquo;s requests and responses to
+          read. An hour with those gave me the map that everything below is built on.
+        </p>
+      </div>
+
+      <figure>
+        <div class="figbox wide">
+          <svg viewBox="0 0 940 292" role="img" aria-label="Scope diagram: the customer device and the merchant bank are out of scope, the aggregator is the target, and the billers are out of scope. Merchant credentials travel in request headers and biller credentials in the request body, both to the aggregator, which then routes to a biller. The aggregator and its inbound interface are the in-scope test surface.">
+            <defs>
+              <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <polygon class="d-arrow" points="0,0 10,5 0,10"></polygon>
+              </marker>
+            </defs>
+            <rect class="d-band" x="414" y="80" width="292" height="140" rx="14" fill="none"></rect>
+            <text class="d-bandlab" x="560" y="66" text-anchor="middle">IN SCOPE: the aggregator &amp; its inbound interface</text>
+
+            <rect class="d-node faded" x="20" y="120" width="150" height="64" rx="10"></rect>
+            <text class="d-label" x="95" y="148" text-anchor="middle" opacity="0.7">Customer</text>
+            <text class="d-sub" x="95" y="167" text-anchor="middle">device · out of scope</text>
+
+            <rect class="d-node faded" x="252" y="120" width="158" height="64" rx="10"></rect>
+            <text class="d-label" x="331" y="148" text-anchor="middle" opacity="0.7">Merchant</text>
+            <text class="d-sub" x="331" y="167" text-anchor="middle">a bank · out of scope</text>
+
+            <rect class="d-node target" x="498" y="106" width="182" height="92" rx="12"></rect>
+            <text class="d-label" x="589" y="140" text-anchor="middle" style="fill:var(--accent)">Aggregator</text>
+            <text class="d-sub" x="589" y="159" text-anchor="middle" style="fill:var(--accent)">THE TARGET</text>
+            <text class="d-sub" x="589" y="176" text-anchor="middle">holds the API we test</text>
+
+            <rect class="d-node faded" x="758" y="104" width="170" height="116" rx="10"></rect>
+            <text class="d-label" x="843" y="134" text-anchor="middle" opacity="0.7">Billers</text>
+            <text class="d-sub" x="843" y="156" text-anchor="middle">top-up · utility</text>
+            <text class="d-sub" x="843" y="172" text-anchor="middle">insurance · mobile-money</text>
+            <text class="d-sub" x="843" y="194" text-anchor="middle">back ends · out of scope</text>
+
+            <line class="d-edge" x1="170" y1="152" x2="248" y2="152" marker-end="url(#ar)"></line>
+            <line class="d-edge" x1="410" y1="152" x2="494" y2="152" marker-end="url(#ar)"></line>
+            <line class="d-edge" x1="680" y1="152" x2="754" y2="152" marker-end="url(#ar)"></line>
+
+            <text class="d-sub" x="452" y="142" text-anchor="middle" style="fill:var(--accent)">①②</text>
+            <text class="d-sub" x="717" y="142" text-anchor="middle">②</text>
+
+            <text class="d-sub" x="34" y="250" text-anchor="start" style="fill:var(--accent)">① merchant credentials, sent in the request headers</text>
+            <text class="d-sub" x="34" y="270" text-anchor="start">② biller credentials, sent in the request body (they pick which biller the aggregator forwards to)</text>
+          </svg>
+        </div>
+      </figure>
+    </section>
+
+    <!-- 2. METHOD -->
+    <section class="post-sec">
+      <div class="wrap">
+        <span class="section-no">02 · The method</span>
+        <h2>Treat the API as a state machine</h2>
+        <p>
+          At its core the API is a payment that moves through a few states. It is
+          <span class="st pending">created</span>, then <span class="st submit">submitted</span>, then
+          either <span class="st settle">settled</span> or <span class="st fail">failed</span>. Drawing
+          that little machine makes the rules it must always obey obvious. Two of the six findings are
+          right there in the picture: places where the payment made a move that should be impossible.
+        </p>
+      </div>
+
+      <figure>
+        <div class="figbox wide">
+          <svg viewBox="0 0 900 340" role="img" aria-label="The transaction state machine. Normal flow: a lookup creates a pending transaction, pay moves it to submitted, and the biller confirms it to settled. Two illegal moves found in testing are drawn in red: a status read or a failed payment pushes a pending transaction to failed, and some transactions were reported settled before pay was ever called.">
+            <defs>
+              <marker id="a2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <polygon class="d-arrow" points="0,0 10,5 0,10"></polygon>
+              </marker>
+              <marker id="a2bad" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+                <polygon class="d-arrow-bad" points="0,0 10,5 0,10"></polygon>
+              </marker>
+            </defs>
+
+            <text class="d-elabel" x="110" y="100" text-anchor="middle">lookup</text>
+            <line class="d-edge" x1="110" y1="108" x2="110" y2="146" marker-end="url(#a2)"></line>
+
+            <rect class="d-node" x="40" y="150" width="140" height="62" rx="10"></rect>
+            <text class="d-label" x="110" y="181" text-anchor="middle">PENDING</text>
+            <text class="d-sub" x="110" y="199" text-anchor="middle">created, unpaid</text>
+
+            <rect class="d-node" x="380" y="150" width="140" height="62" rx="10"></rect>
+            <text class="d-label" x="450" y="181" text-anchor="middle">SUBMITTED</text>
+            <text class="d-sub" x="450" y="199" text-anchor="middle">sent to biller</text>
+
+            <rect class="d-node" x="720" y="150" width="140" height="62" rx="10" style="stroke:var(--accent)"></rect>
+            <text class="d-label" x="790" y="181" text-anchor="middle" style="fill:var(--accent)">SETTLED</text>
+            <text class="d-sub" x="790" y="199" text-anchor="middle">paid, final</text>
+
+            <rect class="d-node" x="380" y="282" width="140" height="52" rx="10" style="stroke:var(--violation)"></rect>
+            <text class="d-label" x="450" y="308" text-anchor="middle" style="fill:var(--violation)">FAILED</text>
+            <text class="d-sub" x="450" y="324" text-anchor="middle">dead, final</text>
+
+            <line class="d-edge" x1="180" y1="181" x2="376" y2="181" marker-end="url(#a2)"></line>
+            <text class="d-elabel" x="278" y="172" text-anchor="middle">pay</text>
+            <line class="d-edge" x1="520" y1="181" x2="716" y2="181" marker-end="url(#a2)"></line>
+            <text class="d-elabel" x="618" y="172" text-anchor="middle">biller confirms</text>
+
+            <path class="d-edge-bad" d="M110 212 C 150 272, 270 298, 398 291" marker-end="url(#a2bad)"></path>
+            <text class="d-elabel-bad" x="214" y="250" text-anchor="middle">a read or a failed pay kills it</text>
+
+            <path class="d-edge-bad" d="M140 150 C 340 72, 560 72, 758 148" marker-end="url(#a2bad)"></path>
+            <text class="d-elabel-bad" x="450" y="80" text-anchor="middle">reported paid before pay is ever called</text>
+
+            <line class="d-edge" x1="585" y1="300" x2="621" y2="300"></line>
+            <text class="d-sub" x="629" y="304" text-anchor="start">normal flow</text>
+            <line class="d-edge-bad" x1="585" y1="320" x2="621" y2="320"></line>
+            <text class="d-sub" x="629" y="324" text-anchor="start">illegal move I could trigger</text>
+          </svg>
+        </div>
+      </figure>
+
+      <div class="wrap">
+        <p>
+          The state machine covers the workflow. A payment API also owes a few plainer promises no matter
+          what: it should not let one caller flood it, it should not store dangerous input, and it should
+          bound every amount. That is six promises in all. I went through the list and tried to break each
+          one.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3. THE SIX FINDINGS -->
+    <section class="post-sec">
+      <div class="wrap">
+        <span class="section-no">03 · The findings</span>
+        <h2>Six promises, and how each one broke</h2>
+
+        <div class="finding">
+          <p class="f-num">Finding 1</p>
+          <h3>A single request permanently blocks a pending payment</h3>
+          <p class="rule-line"><b>The promise:</b> a live payment survives a status check or a failed attempt.</p>
+          <p><span class="lead">What I did.</span> Created a pending payment. Then, on that same transaction, I either just checked its status, or sent a payment that got rejected (wrong biller keys, or a missing field).</p>
+          <p><span class="lead">What happened.</span> Any of those requests consumed the transaction. Its ID could no longer be used to pay. The correct payment sent afterwards was rejected, and the transaction was stuck in a dead, unpayable state.</p>
+          <div class="trace">
+<pre>create a payment                     <span class="good">→ PENDING</span>
+<span class="op">check its status</span>  OR  <span class="op">pay w/ wrong keys</span>  <span class="bad">→ the transaction is consumed</span>
+pay with the correct keys            <span class="bad">→ rejected, the payment is dead</span></pre>
+          </div>
+          <p>I ruled out a timeout. Paying immediately worked. Adding the same delay by checking a <em>different</em> transaction worked. Only touching <em>this</em> transaction killed it.</p>
+          <p><span class="lead">Why it matters.</span> This is a denial of service against payments. Because any request that reaches a pending transaction consumes it, an attacker who knows or guesses a transaction ID can permanently block a customer&rsquo;s payment with a single cheap request that does not even need to succeed. A benign status check, or one wrong key, is enough.</p>
+        </div>
+
+        <div class="finding">
+          <p class="f-num">Finding 2</p>
+          <h3>The payment step could be skipped entirely</h3>
+          <p class="rule-line"><b>The promise:</b> nothing is marked paid until the pay step is actually called.</p>
+          <p><span class="lead">What I did.</span> On four billers, I checked the status right after the lookup step, before calling pay at all.</p>
+          <p><span class="lead">What happened.</span> The status already showed <span class="st settle">successful</span>. Calling pay afterwards changed nothing.</p>
+          <p><span class="lead">Why it matters.</span> The pay step is meant to be the authorization gate for a payment. On these billers it enforces nothing. A transaction reports as fully paid using only the lookup step, which needs just the standard credentials, so the gate that should protect the payment is effectively open.</p>
+        </div>
+
+        <div class="finding">
+          <p class="f-num">Finding 3</p>
+          <h3>No limit on how fast a caller can hit the API</h3>
+          <p class="rule-line"><b>The promise:</b> one caller cannot send unlimited requests.</p>
+          <p><span class="lead">What I did.</span> Sent a burst of requests to the same endpoint from a single credential.</p>
+          <p><span class="lead">What happened.</span> Every request was accepted. No throttling, no lockout, and no &ldquo;too many requests&rdquo; response at any point.</p>
+          <p><span class="lead">Why it matters.</span> With no limit, one caller can drive the API at full speed. That removes the natural cost barrier behind every other attack: brute forcing IDs, enumerating the catalog, and hammering the payment operations. It also lets a single caller create pending transactions without any bound, filling the system with junk records.</p>
+        </div>
+
+        <div class="finding">
+          <p class="f-num">Finding 4</p>
+          <h3>Two requests at once slipped past the rules</h3>
+          <p class="rule-line"><b>The promise:</b> one transaction is paid once, even when requests arrive together.</p>
+          <p><span class="lead">What I did.</span> Sent five payments for the same transaction at the exact same moment. Then sent several create requests that all used the same ID at once.</p>
+          <p><span class="lead">What happened.</span> Instead of one success and the rest cleanly rejected, several payments succeeded (all sharing one reference), and others returned raw internal errors. The create race produced several records for a single ID. Sent one at a time, everything behaved.</p>
+          <p><span class="lead">Why it matters.</span> The uniqueness the transaction ID is supposed to guarantee only holds when requests arrive one at a time. A race defeats the duplicate check and can leave the transaction in an inconsistent state.</p>
+        </div>
+
+        <div class="finding">
+          <p class="f-num">Finding 5</p>
+          <h3>Script markup was stored straight into payment records</h3>
+          <p class="rule-line"><b>The promise:</b> attacker-controlled text is neutralised before it is stored.</p>
+          <p><span class="lead">What I did.</span> Put HTML and script markup into free-text fields, such as a name, then completed the payment.</p>
+          <p><span class="lead">What happened.</span> The markup was accepted, stored, and returned exactly as sent, with no escaping. It ended up bound into a completed payment record.</p>
+          <p><span class="lead">Why it matters.</span> Any application that later shows this record in a web page (a receipt, a saved-payee list, a transaction history, an internal dashboard) and does not escape it will run the attacker&rsquo;s script. The value comes back as JSON, so it does not execute at the API itself. The vulnerability is that the API stores active, attacker-controlled markup inside a financial record with no neutralisation, a stored cross-site-scripting sink waiting for a place to render.</p>
+        </div>
+
+        <div class="finding">
+          <p class="f-num">Finding 6</p>
+          <h3>Some billers accepted any amount, up to a billion</h3>
+          <p class="rule-line"><b>The promise:</b> every amount is bounded by one shared check.</p>
+          <p><span class="lead">What I did.</span> Sent very small and very large amounts to different billers.</p>
+          <p><span class="lead">What happened.</span> Top-up billers enforced a sensible range. But the insurance, club, and ISP billers accepted anything, from a single unit up to nine digits, and settled it.</p>
+          <div class="trace">
+<pre>top-up biller     amount = 1,000,000,000   <span class="good">→ rejected</span>  <span class="c">range enforced</span>
+insurance biller  amount = 1,000,000,000   <span class="bad">→ SETTLED</span>   <span class="c">accepted and paid</span>
+insurance biller  amount = 1               <span class="bad">→ SETTLED</span>   <span class="c">no floor either</span></pre>
+          </div>
+          <p><span class="lead">Why it matters.</span> With no ceiling, one request settles an enormous charge, and nothing stops a mistake or an abuse. The fact that some billers enforce a range while others enforce nothing shows the check is duplicated per biller instead of applied once, so an attacker only has to find the biller where it was left off, and the next biller added inherits the same gap.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLOSE -->
+    <section class="post-sec">
+      <div class="wrap">
+        <span class="section-no">04 · The pattern</span>
+        <h2>None of these were exotic</h2>
+        <p>
+          Each finding is one promise the API makes, and one request that breaks it. That is the whole
+          method. Map the payment as a state machine, list the promises it must keep, then try to make
+          each one false.
+        </p>
+        <p>
+          These are not header or certificate bugs. They live in the order of the steps, in reads that
+          quietly change state, and in what happens when requests race. That is where the security risk in
+          a payment API concentrates, and where it takes deliberate, manual testing to find.
+        </p>
+        <div class="callout">
+          <p class="lab">The takeaway</p>
+          <p>Before you poke an API, map its state machine and write down the promises it must keep. Then
+            go break them, one at a time. That list is your test plan.</p>
+        </div>
+      </div>
+
+      <div class="anon">
+        <p><b>On anonymisation.</b> Every identifier here (the parties, the endpoint names, the biller
+          categories, the status values, the amounts) is generalised or invented. This describes a
+          <em>class</em> of system and a way of testing it, not any specific product, provider, or
+          engagement. Nothing here reproduces client data.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <div class="footer__brand"><span class="accent">&gt;_</span> gul<span class="accent">hameed</span></div>
+      <p class="footer__copy">© <span id="year"></span> Gul Hameed · <a href="/blog/" style="color:var(--accent)">more writing</a></p>
+    </div>
+  </footer>
+  <script>document.getElementById('year').textContent=new Date().getFullYear();</script>
+</body>
+</html>
