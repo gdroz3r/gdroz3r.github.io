@@ -392,7 +392,7 @@ pay with the correct keys            <span class="bad">→ rejected, the payment
           <h3>Two requests at once slipped past the rules</h3>
           <p class="rule-line"><b>The promise:</b> one transaction is paid once, even when requests arrive together.</p>
           <p><span class="lead">What I did.</span> Sent five payments for the same transaction at the exact same moment. Then sent several create requests that all used the same ID at once.</p>
-          <p><span class="lead">What happened.</span> Instead of one success and the rest cleanly rejected, several payments succeeded (all sharing one reference), and others returned raw internal errors. The create race produced several records for a single ID. Sent one at a time, everything behaved.</p>
+          <p><span class="lead">What happened.</span> One at a time, the API behaved: the first request was accepted and the rest were cleanly rejected as duplicates. Fired all at once, it broke. Five simultaneous payments on one transaction should leave exactly one success and four rejections. Instead, several came back &ldquo;successful&rdquo; at the same moment, and the others failed with raw internal errors rather than a clean rejection. The create step did the same: six requests that all reused one transaction ID, sent together, produced several separate records for that single ID.</p>
           <p><span class="lead">Why it matters.</span> The uniqueness the transaction ID is supposed to guarantee only holds when requests arrive one at a time. A race defeats the duplicate check and can leave the transaction in an inconsistent state.</p>
         </div>
 
