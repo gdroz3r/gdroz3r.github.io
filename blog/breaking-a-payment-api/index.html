@@ -366,7 +366,7 @@
 pay with the correct keys            <span class="bad">→ rejected, the payment is dead</span></pre>
           </div>
           <p>I ruled out a timeout. Paying immediately worked. Adding the same delay by checking a <em>different</em> transaction worked. Only touching <em>this</em> transaction killed it.</p>
-          <p><span class="lead">Why it matters.</span> This is a denial of service against payments. Because any request that reaches a pending transaction consumes it, an attacker who knows or guesses a transaction ID can permanently block a customer&rsquo;s payment with a single cheap request that does not even need to succeed. A benign status check, or one wrong key, is enough.</p>
+          <p><span class="lead">Why it matters.</span> It breaks even with no attacker involved. Checking a transaction&rsquo;s status before submitting the payment is a completely normal thing for a merchant to do, and here it destroys the very payment it was checking. It is also a denial of service: because any request that reaches a pending transaction consumes it, anyone who knows or guesses a transaction ID can permanently block a customer&rsquo;s payment with a single cheap request that does not even need to succeed. A benign status check, or one wrong key, is enough.</p>
         </div>
 
         <div class="finding">
