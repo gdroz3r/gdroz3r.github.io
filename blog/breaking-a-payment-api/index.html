@@ -371,11 +371,11 @@ pay with the correct keys            <span class="bad">→ rejected, the payment
 
         <div class="finding">
           <p class="f-num">Finding 2</p>
-          <h3>The payment step could be skipped entirely</h3>
-          <p class="rule-line"><b>The promise:</b> nothing is marked paid until the pay step is actually called.</p>
-          <p><span class="lead">What I did.</span> On four billers, I checked the status right after the lookup step, before calling pay at all.</p>
-          <p><span class="lead">What happened.</span> The status already showed <span class="st settle">successful</span>. Calling pay afterwards changed nothing.</p>
-          <p><span class="lead">Why it matters.</span> The pay step is meant to be the authorization gate for a payment. On these billers it enforces nothing. A transaction reports as fully paid using only the lookup step, which needs just the standard credentials, so the gate that should protect the payment is effectively open.</p>
+          <h3>Two requests at once slipped past the rules</h3>
+          <p class="rule-line"><b>The promise:</b> one transaction is paid once, even when requests arrive together.</p>
+          <p><span class="lead">What I did.</span> Sent five payments for the same transaction at the exact same moment. Then sent several create requests that all used the same ID at once.</p>
+          <p><span class="lead">What happened.</span> One at a time, the API behaved: the first request was accepted and the rest were cleanly rejected as duplicates. Fired all at once, it broke. Five simultaneous payments on one transaction should leave exactly one success and four rejections. Instead, several came back &ldquo;successful&rdquo; at the same moment, and the others failed with raw internal errors rather than a clean rejection. The create step did the same: six requests that all reused one transaction ID, sent together, produced several separate records for that single ID.</p>
+          <p><span class="lead">Why it matters.</span> The uniqueness the transaction ID is supposed to guarantee only holds when requests arrive one at a time. A race defeats the duplicate check and can leave the transaction in an inconsistent state.</p>
         </div>
 
         <div class="finding">
@@ -384,16 +384,16 @@ pay with the correct keys            <span class="bad">→ rejected, the payment
           <p class="rule-line"><b>The promise:</b> one caller cannot send unlimited requests.</p>
           <p><span class="lead">What I did.</span> Sent a burst of requests to the same endpoint from a single credential.</p>
           <p><span class="lead">What happened.</span> Every request was accepted. No throttling, no lockout, and no &ldquo;too many requests&rdquo; response at any point.</p>
-          <p><span class="lead">Why it matters.</span> With no limit, one caller can drive the API at full speed. That removes the natural cost barrier behind every other attack: brute forcing IDs, enumerating the catalog, and hammering the payment operations. It also lets a single caller create pending transactions without any bound, filling the system with junk records.</p>
+          <p><span class="lead">Why it matters.</span> On its own, this is a resource problem: a single credential can drive the API flat out, pile up unbounded pending transactions, and eat back-end capacity with junk records. The sharper problem is that it takes the cost out of every other weakness on this list. The transaction-killing bug in Finding 1 stops being a way to block one payment and becomes a way to block payments in bulk, on a script, for free. Guessing or enumerating transaction IDs is only viable because nothing slows the attempts down. A rate limit is the control that normally stops a single-request bug from scaling into a mass attack, and there was none, so every other finding here gets cheaper and larger.</p>
         </div>
 
         <div class="finding">
           <p class="f-num">Finding 4</p>
-          <h3>Two requests at once slipped past the rules</h3>
-          <p class="rule-line"><b>The promise:</b> one transaction is paid once, even when requests arrive together.</p>
-          <p><span class="lead">What I did.</span> Sent five payments for the same transaction at the exact same moment. Then sent several create requests that all used the same ID at once.</p>
-          <p><span class="lead">What happened.</span> One at a time, the API behaved: the first request was accepted and the rest were cleanly rejected as duplicates. Fired all at once, it broke. Five simultaneous payments on one transaction should leave exactly one success and four rejections. Instead, several came back &ldquo;successful&rdquo; at the same moment, and the others failed with raw internal errors rather than a clean rejection. The create step did the same: six requests that all reused one transaction ID, sent together, produced several separate records for that single ID.</p>
-          <p><span class="lead">Why it matters.</span> The uniqueness the transaction ID is supposed to guarantee only holds when requests arrive one at a time. A race defeats the duplicate check and can leave the transaction in an inconsistent state.</p>
+          <h3>The payment step could be skipped entirely</h3>
+          <p class="rule-line"><b>The promise:</b> nothing is marked paid until the pay step is actually called.</p>
+          <p><span class="lead">What I did.</span> On four billers, I checked the status right after the lookup step, before ever calling pay.</p>
+          <p><span class="lead">What happened.</span> The transaction already came back as fully <span class="st settle">successful</span>, on a payment I had not authorised. Calling the pay step afterwards changed nothing: it was already &ldquo;paid&rdquo; before the step that is supposed to make it so.</p>
+          <p><span class="lead">Why it matters.</span> This is a broken authorisation control, not a harmless ordering quirk. The two-step flow exists precisely so that a payment is not final until an explicit pay call authorises it; that call is the gate between &ldquo;a bill was looked up&rdquo; and &ldquo;this payment is authorised.&rdquo; On these billers the gate enforces nothing, so anyone holding the ordinary credentials can produce transactions that report as fully paid without ever authorising a payment. Any system that trusts that status, a bank ledger, a merchant&rsquo;s reconciliation, a receipt shown to a customer, would treat an unauthorised transaction as a completed one. The step that is meant to prove a payment was actually intended and authorised proves nothing.</p>
         </div>
 
         <div class="finding">
