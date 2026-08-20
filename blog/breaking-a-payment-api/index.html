@@ -433,9 +433,9 @@ insurance biller  amount = 1               <span class="bad">→ SETTLED</span> 
           make each one false.
         </p>
         <p>
-          The bugs live in the order of the steps, in reads that
-          quietly change state, and in what happens when requests race. That is where the security risk in
-          a payment API concentrates, and where it takes deliberate, manual testing to find.
+          On a payment API, this is where the effort pays off most. The workflow is where real money and
+          real trust move, and it only gives up its bugs to someone who reads the flow closely and tests
+          whether each step actually does what it claims.
         </p>
         <div class="callout">
           <p class="lab">The takeaway</p>
