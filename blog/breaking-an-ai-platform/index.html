@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breaking an AI Platform | Gul Hameed</title>
+<meta name="theme-color" content="#06070a">
+<meta name="description" content="A security assessment of a self-hosted AI platform. A verbose error pinned the stack, the stack pinned a CVE, and the CVE led to a critical cross-user OAuth token leak through MCP (CVE-2026-71424).">
+<meta name="author" content="Gul Hameed">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Breaking an AI Platform">
+<meta property="og:description" content="Three findings in a self-hosted LLM platform, chained by information: a stack trace, a pinned version, and a cross-user OAuth token leak.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@CyberGul">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2306070a'/><text x='50' y='68' font-size='58' font-family='monospace' font-weight='700' text-anchor='middle' fill='%2300ffa3'>%3E_</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#06070a;
+    --panel:#0c0e13;
+    --line:#1c2029;
+    --text:#d9dce3;
+    --muted:#868c9c;
+    --accent:#5eead4;
+    --accent-dim:#2f4b47;
+    --crit:#ff6b6b;
+    --mono:'JetBrains Mono','Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+  body{line-height:1.65;font-size:16.5px;}
+  .wrap{max-width:720px;margin:0 auto;padding:64px 24px 120px;}
+  .crumb{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:36px;}
+  .crumb a{color:var(--muted);text-decoration:none;}
+  .crumb a:hover{color:var(--accent);}
+  .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;color:var(--accent);margin-bottom:14px;}
+  h1{font-size:2.3rem;line-height:1.15;margin:0 0 20px;font-weight:650;letter-spacing:-0.015em;}
+  .metabar{font-family:var(--mono);font-size:13px;color:var(--muted);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin:28px 0 44px;}
+  p{margin:0 0 18px;color:var(--text);}
+  .lede{font-size:1.08rem;color:#c4c9d4;}
+  h2{font-size:1.5rem;margin:0 0 18px;font-weight:600;letter-spacing:-0.01em;}
+  h3{font-size:1.18rem;margin:0 0 6px;font-weight:600;}
+  .section-num{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:56px 0 6px;}
+  ul{margin:0 0 18px;padding-left:20px;}
+  li{margin-bottom:8px;color:#c4c9d4;}
+  li b, li strong{color:var(--text);}
+  .layer-list{list-style:none;padding-left:0;}
+  .layer-list li{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:10px;}
+  .layer-list b{color:var(--accent);}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:13px;color:#a8f0e4;margin:0 0 22px;line-height:1.55;}
+  code{font-family:var(--mono);font-size:0.88em;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;}
+  pre code{background:none;padding:0;}
+  .finding{border:1px solid var(--line);border-radius:10px;padding:26px 26px 8px;margin:0 0 28px;background:linear-gradient(180deg,rgba(255,255,255,0.015),transparent);}
+  .finding-eyebrow{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .promise{font-family:var(--mono);font-size:13.5px;color:var(--accent);background:var(--accent-dim);display:inline-block;padding:5px 10px;border-radius:5px;margin:6px 0 20px;}
+  .plain{background:rgba(94,234,212,0.05);border:1px solid var(--accent-dim);border-radius:8px;padding:14px 16px;margin:0 0 20px;font-size:15px;color:#c4c9d4;}
+  .plain b{color:var(--accent);}
+  .sev{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--crit);border:1px solid rgba(255,107,107,0.4);padding:4px 10px;border-radius:5px;margin-bottom:16px;}
+  .subhead{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px;}
+  .frame-list{list-style:none;padding-left:0;}
+  .frame-list li{padding:14px 0;border-bottom:1px solid var(--line);}
+  .frame-list li:last-child{border-bottom:none;}
+  .frame-list b{color:var(--accent);display:block;font-size:.92rem;margin-bottom:4px;}
+  .takeaway{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:18px 20px;margin:32px 0;}
+  .takeaway p{margin:0;color:#c4c9d4;}
+  .anon{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:22px;margin-top:40px;}
+  .anon b{color:#a8adba;}
+  .foot{font-family:var(--mono);font-size:13px;color:var(--muted);text-align:center;margin-top:72px;}
+  .foot a{color:var(--accent);text-decoration:none;}
+  .refblock{margin-top:8px;}
+  .ref-group{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px;}
+  ul.refs{list-style:none;padding-left:0;margin:0 0 8px;}
+  ul.refs li{font-size:14.5px;color:#b8bdc9;padding:6px 0;border-bottom:1px solid var(--line);}
+  ul.refs li:last-child{border-bottom:none;}
+  ul.refs a{color:var(--accent);text-decoration:none;word-break:break-word;}
+  ul.refs a:hover{text-decoration:underline;}
+  figure{margin:8px 0 28px;}
+  figure svg{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;}
+  figcaption{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:10px;text-align:center;}
+  @media(max-width:600px){
+    .wrap{padding:40px 18px 90px;}
+    h1{font-size:1.8rem;}
+    .finding{padding:20px 18px 6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="crumb">
+    <a href="https://gdroz3r.github.io/">&gt;_ gulhameed</a> &nbsp;/&nbsp;
+    <a href="https://gdroz3r.github.io/blog/">Blog</a>
+  </div>
+
+  <div class="kicker">API security · LLM platform · CVE chain</div>
+  <h1>Breaking an AI Platform</h1>
+
+  <p class="lede">I tested a self-hosted AI platform: a chat UI in front of several LLM providers, with agents that call out to real company tools through MCP. The bug that mattered most came from a chain. One verbose error told me what the platform was running. That told me which public CVE applied. And that pointed straight at the endpoint that mattered.</p>
+
+  <div class="metabar">3 findings · Self-hosted AI platform · Chain method · ~6 min read</div>
+
+  <div class="section-num">01 · THE SETUP</div>
+  <h2>Three layers, one trust boundary</h2>
+
+  <p>The platform is three layers stacked on top of each other.</p>
+
+  <ul class="layer-list">
+    <li><b>Chat backend.</b> Takes the user's message and per-request options (which model, which tools) and hands them off.</li>
+    <li><b>LLM routing layer.</b> Embedded as a library rather than run as its own service. It normalises the request for whichever provider is selected (OpenAI, Anthropic, Gemini, a self-hosted model).</li>
+    <li><b>MCP layer.</b> Model Context Protocol servers that expose real tools (ticketing, CRM, internal APIs) to the agent, gated by credentials the platform stores on the user's behalf.</li>
+  </ul>
+
+  <p>The MCP layer is where the interesting trust boundary lives. Some servers are shared org-wide. Others are configured per-user, meaning each person authenticates individually and the token that results is supposed to be theirs alone.</p>
+
+  <p>I tested as one standard, authenticated account. Nothing elevated. The question that mattered was simple: does "per user" actually mean per user once that token is stored?</p>
+
+  <!-- ARCHITECTURE DIAGRAM -->
+  <figure>
+    <svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two request paths through the platform: the LLM path and the MCP token path, with a per-user trust boundary.">
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#5eead4"/>
+        </marker>
+        <marker id="arrRed" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#ff6b6b"/>
+        </marker>
+      </defs>
+
+      <!-- USER -->
+      <rect x="20" y="130" width="92" height="60" rx="8" fill="#11141b" stroke="#2b3140"/>
+      <text x="66" y="158" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="13" font-weight="600">user</text>
+      <text x="66" y="176" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10.5">1 std acct</text>
+
+      <!-- LLM PATH (top) -->
+      <rect x="180" y="34" width="120" height="56" rx="8" fill="#0f151a" stroke="#2f4b47"/>
+      <text x="240" y="58" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="11.5" font-weight="600">chat backend</text>
+      <text x="240" y="74" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">picks model + tools</text>
+
+      <rect x="360" y="34" width="120" height="56" rx="8" fill="#0f151a" stroke="#2f4b47"/>
+      <text x="420" y="54" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="11.5" font-weight="600">LLM SDK</text>
+      <text x="420" y="70" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">embedded, not</text>
+      <text x="420" y="82" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">a proxy</text>
+
+      <rect x="540" y="34" width="140" height="56" rx="8" fill="#11141b" stroke="#2b3140"/>
+      <text x="610" y="58" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="11.5" font-weight="600">provider</text>
+      <text x="610" y="74" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">OpenAI / Gemini</text>
+
+      <!-- LLM path arrows -->
+      <line x1="112" y1="150" x2="240" y2="92" stroke="#5eead4" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="300" y1="62" x2="356" y2="62" stroke="#5eead4" stroke-width="1.6" marker-end="url(#arr)"/>
+      <line x1="480" y1="62" x2="536" y2="62" stroke="#5eead4" stroke-width="1.6" marker-end="url(#arr)"/>
+      <text x="360" y="24" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">the LLM path  ·  errors leak the stack (F1 / F2)</text>
+
+      <!-- MCP PATH (bottom) -->
+      <rect x="180" y="240" width="120" height="56" rx="8" fill="#0f151a" stroke="#3a2b30"/>
+      <text x="240" y="264" text-anchor="middle" fill="#ff9d9d" font-family="monospace" font-size="11.5" font-weight="600">MCP config</text>
+      <text x="240" y="280" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">/api/mcp/servers</text>
+
+      <rect x="360" y="240" width="120" height="56" rx="8" fill="#0f151a" stroke="#3a2b30"/>
+      <text x="420" y="264" text-anchor="middle" fill="#ff9d9d" font-family="monospace" font-size="11.5" font-weight="600">stored token</text>
+      <text x="420" y="280" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">shared row (bug)</text>
+
+      <rect x="540" y="240" width="140" height="56" rx="8" fill="#11141b" stroke="#2b3140"/>
+      <text x="610" y="264" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="11.5" font-weight="600">third-party tool</text>
+      <text x="610" y="280" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">helpdesk / CRM</text>
+
+      <!-- MCP path arrows -->
+      <line x1="112" y1="170" x2="240" y2="236" stroke="#ff6b6b" stroke-width="1.6" marker-end="url(#arrRed)"/>
+      <line x1="300" y1="268" x2="356" y2="268" stroke="#ff6b6b" stroke-width="1.6" marker-end="url(#arrRed)"/>
+      <line x1="480" y1="268" x2="536" y2="268" stroke="#ff6b6b" stroke-width="1.6" marker-end="url(#arrRed)"/>
+      <text x="360" y="322" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">the MCP token path  ·  per-user token leaks cross-user (F3)</text>
+
+      <!-- trust boundary label -->
+      <rect x="352" y="300" width="136" height="2" fill="none"/>
+    </svg>
+    <figcaption>Two paths, one account. The LLM path leaks the stack; the MCP token path leaks other users' credentials.</figcaption>
+  </figure>
+
+  <div class="section-num">02 · THE CHAIN</div>
+  <h2>Three findings, each one paying for the next</h2>
+  <p>None of these needed exploit chaining in the traditional sense. What chained was information. Each finding pointed straight at the next request to send.</p>
+
+  <!-- CHAIN FLOW DIAGRAM -->
+  <figure>
+    <svg viewBox="0 0 700 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The chain: a stack trace leads to a pinned version, which leads to a matching CVE, which leads to the cross-user token leak.">
+      <defs>
+        <marker id="c" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="#5eead4"/>
+        </marker>
+      </defs>
+
+      <!-- node 1 -->
+      <rect x="18" y="60" width="150" height="70" rx="9" fill="#0f151a" stroke="#2f4b47"/>
+      <text x="93" y="84" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="12" font-weight="600">F1 · stack trace</text>
+      <text x="93" y="102" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">paths, SDK</text>
+      <text x="93" y="115" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">version, proj ID</text>
+
+      <!-- node 2 -->
+      <rect x="200" y="60" width="150" height="70" rx="9" fill="#0f151a" stroke="#2f4b47"/>
+      <text x="275" y="84" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="12" font-weight="600">F2 · pinned ver</text>
+      <text x="275" y="102" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">line-number</text>
+      <text x="275" y="115" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">fingerprint</text>
+
+      <!-- node 3 -->
+      <rect x="382" y="60" width="150" height="70" rx="9" fill="#0f151a" stroke="#2f4b47"/>
+      <text x="457" y="84" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="12" font-weight="600">advisory match</text>
+      <text x="457" y="102" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">version is in</text>
+      <text x="457" y="115" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">CVE range</text>
+
+      <!-- node 4 (critical) -->
+      <rect x="546" y="55" width="136" height="80" rx="9" fill="#1a0f12" stroke="#ff6b6b"/>
+      <text x="614" y="82" text-anchor="middle" fill="#ff6b6b" font-family="monospace" font-size="12" font-weight="700">F3 · token leak</text>
+      <text x="614" y="100" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="10">cross-user OAuth</text>
+      <text x="614" y="113" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="10">CVSS 9.6</text>
+
+      <!-- arrows -->
+      <line x1="168" y1="95" x2="196" y2="95" stroke="#5eead4" stroke-width="1.8" marker-end="url(#c)"/>
+      <line x1="350" y1="95" x2="378" y2="95" stroke="#5eead4" stroke-width="1.8" marker-end="url(#c)"/>
+      <line x1="532" y1="95" x2="542" y2="95" stroke="#5eead4" stroke-width="1.8" marker-end="url(#c)"/>
+
+      <text x="350" y="30" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10.5">each finding hands the next one its map</text>
+      <text x="350" y="168" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10.5">information chains, not payloads</text>
+    </svg>
+    <figcaption>The chain: a leaked error becomes a pinned version, becomes a matching CVE, becomes the critical.</figcaption>
+  </figure>
+
+  <div class="finding">
+    <div class="finding-eyebrow">FINDING 1</div>
+    <h3>A stack trace told me the stack</h3>
+    <div class="promise">The promise: internal errors stay internal.</div>
+
+    <div class="subhead">What I did</div>
+    <ul>
+      <li>Sent a chat request with a model name the SDK's provider mapping mishandles.</li>
+      <li>Sent a second request naming a real model the deployment's cloud project wasn't provisioned for.</li>
+    </ul>
+
+    <div class="subhead">What happened</div>
+    <ul>
+      <li>First request returned a full Python traceback: internal file paths, the LLM SDK's version-specific internals, the Python runtime version. The root cause was a known, public upstream bug, a response parser choking on a constant of the wrong type.</li>
+      <li>Second request returned the cloud provider's raw error, including the project identifier and inference region.</li>
+      <li>Two more variants surfaced the same way: a raw internal dictionary key in an unhandled exception, and a duplicate-tool-registration error that printed internal MCP tool names.</li>
+    </ul>
+
+    <div class="subhead">Why it matters</div>
+    <ul>
+      <li>Not RCE, but free reconnaissance.</li>
+      <li>Source paths plus a pinned SDK version mean a CVE lookup instead of a guess.</li>
+      <li>A leaked cloud project ID is infrastructure fingerprinting, handed over by the app itself.</li>
+      <li>The leaked internal tool and object names became the table of contents for what to test next.</li>
+    </ul>
+
+    <pre>POST /chat  { model: "&lt;malformed&gt;" }               -> full stack trace, internal paths, SDK version
+POST /chat  { model: "&lt;valid-but-unprovisioned&gt;" }  -> upstream error, cloud project ID leaked</pre>
+  </div>
+
+  <div class="finding">
+    <div class="finding-eyebrow">FINDING 2</div>
+    <h3>The version in the stack trace was a known-bad version</h3>
+    <div class="promise">The promise: the components behind the platform are current and patched.</div>
+
+    <div class="subhead">What I did</div>
+    <ul>
+      <li>Took the SDK version and paths from Finding 1, then matched line numbers against public release history to pin an exact version.</li>
+      <li>Fingerprinted the platform's own version the same way, then cross-referenced both against public advisory databases.</li>
+    </ul>
+
+    <div class="subhead">What happened</div>
+    <ul>
+      <li>The embedded LLM SDK was running well behind current. Ten CVEs exist for it, all in a proxy-server component this deployment doesn't run, so all ten were not applicable here. One non-CVE bug in that same codebase, however, matched Finding 1's crash exactly.</li>
+      <li>The platform itself was one major release behind, squarely inside the vulnerable range of a critical, publicly disclosed CVE. That CVE is Finding 3, below.</li>
+    </ul>
+
+    <div class="subhead">Why it matters</div>
+    <ul>
+      <li>On its own, this is a hygiene finding.</li>
+      <li>Chained, it's the step that turns "I have a stack trace" into "I know exactly which public exploit applies."</li>
+    </ul>
+  </div>
+
+  <div class="finding">
+    <div class="finding-eyebrow">FINDING 3</div>
+    <span class="sev">CRITICAL · CVSS 9.6</span>
+    <h3>Cross-user OAuth tokens, returned to any authenticated user</h3>
+    <div class="promise">The promise: a per-user credential is readable by exactly one user, the one it belongs to.</div>
+
+    <div class="plain">
+      <b>In plain terms.</b> Onyx lets each user connect an external tool (a helpdesk, a CRM) with their own login, and that login token is meant to stay private to them. CVE-2026-71424 is the bug where asking Onyx to list the connected servers hands back everyone's tokens, not just yours. The cause is a storage slip: each person's private token was being saved into one shared record that every user is allowed to read.
+    </div>
+
+    <div class="subhead">What I did</div>
+    <ul>
+      <li>As a standard, non-admin account, called the endpoint that lists an organisation's configured MCP servers.</li>
+    </ul>
+
+    <div class="subhead">What happened</div>
+    <ul>
+      <li>The response returned the full connection object for every MCP server in the org, including ones I never connected and didn't own.</li>
+      <li>For servers configured as per-user, the live OAuth Bearer token belonging to other users came back in plain text in the <code>Authorization</code> header field.</li>
+      <li>This is a published vulnerability, <b>CVE-2026-71424</b> (CVSS 9.6, CWE-200 and CWE-863), affecting the platform before versions 3.1.10, 3.2.14, and 4.0.0.</li>
+      <li>The root cause is a storage bug, not a simple permissions miss. Per-user tokens get written into a shared configuration row meant for org-wide servers, and the server-listing endpoint serializes that row, headers included, to whoever asks.</li>
+      <li>The platform's own status flags marked these tokens as active and connected.</li>
+    </ul>
+
+    <pre>GET /api/mcp/servers
+-> server[3].auth_template.headers.Authorization: "Bearer 1000.•••" (user: user-a@{org}, anonymised)
+-> server[5].auth_template.headers.Authorization: "Bearer 1000.•••" (user: user-b@{org}, anonymised)</pre>
+
+    <figure>
+      <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How it should work versus what happened: per-user tokens should go to private rows, but all were written to one shared row any user can read.">
+        <defs>
+          <marker id="g" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5eead4"/></marker>
+          <marker id="r" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#ff6b6b"/></marker>
+        </defs>
+
+        <!-- divider -->
+        <line x1="350" y1="20" x2="350" y2="230" stroke="#1c2029" stroke-width="1" stroke-dasharray="4 4"/>
+
+        <!-- LEFT: should work -->
+        <text x="165" y="32" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="11.5" font-weight="600">how it should work</text>
+
+        <rect x="20" y="55" width="90" height="34" rx="6" fill="#11141b" stroke="#2b3140"/>
+        <text x="65" y="76" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="11">A token</text>
+        <rect x="20" y="105" width="90" height="34" rx="6" fill="#11141b" stroke="#2b3140"/>
+        <text x="65" y="126" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="11">B token</text>
+
+        <rect x="200" y="55" width="120" height="34" rx="6" fill="#0f151a" stroke="#2f4b47"/>
+        <text x="260" y="76" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="10.5">A's private row</text>
+        <rect x="200" y="105" width="120" height="34" rx="6" fill="#0f151a" stroke="#2f4b47"/>
+        <text x="260" y="126" text-anchor="middle" fill="#5eead4" font-family="monospace" font-size="10.5">B's private row</text>
+
+        <line x1="110" y1="72" x2="196" y2="72" stroke="#5eead4" stroke-width="1.6" marker-end="url(#g)"/>
+        <line x1="110" y1="122" x2="196" y2="122" stroke="#5eead4" stroke-width="1.6" marker-end="url(#g)"/>
+        <text x="165" y="175" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">only the owner</text>
+        <text x="165" y="189" text-anchor="middle" fill="#868c9c" font-family="monospace" font-size="10">reads each row</text>
+
+        <!-- RIGHT: what happened -->
+        <text x="530" y="32" text-anchor="middle" fill="#ff6b6b" font-family="monospace" font-size="11.5" font-weight="600">what actually happened</text>
+
+        <rect x="378" y="48" width="80" height="30" rx="6" fill="#11141b" stroke="#2b3140"/>
+        <text x="418" y="67" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="10.5">A token</text>
+        <rect x="378" y="86" width="80" height="30" rx="6" fill="#11141b" stroke="#2b3140"/>
+        <text x="418" y="105" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="10.5">B token</text>
+        <rect x="378" y="124" width="80" height="30" rx="6" fill="#11141b" stroke="#2b3140"/>
+        <text x="418" y="143" text-anchor="middle" fill="#d9dce3" font-family="monospace" font-size="10.5">you</text>
+
+        <rect x="530" y="78" width="150" height="46" rx="7" fill="#1a0f12" stroke="#ff6b6b"/>
+        <text x="605" y="98" text-anchor="middle" fill="#ff6b6b" font-family="monospace" font-size="11" font-weight="700">ONE shared row</text>
+        <text x="605" y="113" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">any user can read</text>
+
+        <line x1="458" y1="63" x2="526" y2="95" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
+        <line x1="458" y1="101" x2="526" y2="101" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
+        <line x1="458" y1="139" x2="526" y2="107" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
+
+        <line x1="605" y1="124" x2="605" y2="168" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
+        <text x="605" y="192" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">list endpoint returns</text>
+        <text x="605" y="206" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">every token to everyone</text>
+      </svg>
+      <figcaption>The storage slip: per-user tokens written into one shared row, then served to any authenticated user.</figcaption>
+    </figure>
+
+    <div class="subhead">Why it matters</div>
+    <ul>
+      <li>These tokens carry their owners' real permissions against a live third-party system. Here that was a helpdesk platform with well over a hundred callable tools under that scope.</li>
+      <li>Read and write access to another employee's ticketing data, via one GET request, from a low-privilege account.</li>
+    </ul>
+  </div>
+
+  <div class="section-num">03 · WHERE THIS SITS</div>
+  <h2>Two frameworks, same shape</h2>
+
+  <ul class="frame-list">
+    <li><b>OWASP Top 10 for LLM Applications (2025)</b>Sensitive Information Disclosure covers the app leaking internal state through errors or output (Findings 1 and 2).</li>
+    <li><b>OWASP Top 10 for Model Context Protocol (2025, beta)</b>Token Mismanagement &amp; Secret Exposure and Insufficient Authentication &amp; Authorization both map almost directly onto Finding 3: a credential persisting somewhere it shouldn't, retrievable by an endpoint that never checks whose data it's serving.</li>
+  </ul>
+
+  <p>This isn't a coincidence. Agentic platforms introduced a new trust boundary, per-user credentials held by a shared service, and it keeps breaking the same handful of ways across unrelated products. Recognising the shape early is half the audit.</p>
+
+  <div class="section-num">04 · THE PATTERN</div>
+  <h2>One promise breaks, the next one is free to find</h2>
+
+  <ul>
+    <li>A verbose error is reconnaissance.</li>
+    <li>Reconnaissance turns into a version, and a version turns into a CVE lookup.</li>
+    <li>The endpoint meant to enforce "your token stays yours" never checked whose token it was serving.</li>
+  </ul>
+
+  <p>None of this needed a novel technique. Each step is the system telling on itself, a little more each time, to someone who kept asking the next obvious question.</p>
+
+  <div class="takeaway">
+    <p><b>The takeaway.</b> Don't stop at the first error message. A stack trace is a free fingerprint of every component behind the request. Pin the versions, check them against public advisories, then go test the specific thing those advisories say is broken. On a platform storing other people's credentials on your behalf, that specific thing is almost always worth checking first.</p>
+  </div>
+
+  <div class="section-num">05 · REFERENCES</div>
+  <h2>References</h2>
+
+  <div class="refblock">
+    <ul class="refs">
+      <li>CVE-2026-71424, official CVE record — <a href="https://www.cve.org/CVERecord?id=CVE-2026-71424">cve.org</a></li>
+      <li>Onyx security advisory, root cause, fix, and patch commits — <a href="https://github.com/onyx-dot-app/onyx/security/advisories/GHSA-q62f-rv3h-f822">GHSA-q62f-rv3h-f822</a></li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    &gt;_ gulhameed<br>
+    © Gul Hameed · <a href="https://gdroz3r.github.io/blog/">more writing</a>
+  </div>
+
+</div>
+</body>
+</html>
