@@ -288,7 +288,7 @@ POST /chat  { model: "&lt;valid-but-unprovisioned&gt;" }  -> upstream error, clo
     <div class="promise">The promise: a per-user credential is readable by exactly one user, the one it belongs to.</div>
 
     <div class="plain">
-      <b>In plain terms.</b> Onyx lets each user connect an external tool (a helpdesk, a CRM) with their own login, and that login token is meant to stay private to them. CVE-2026-71424 is the bug where asking Onyx to list the connected servers hands back everyone's tokens, not just yours. The cause is a storage slip: each person's private token was being saved into one shared record that every user is allowed to read.
+      <b>In plain terms.</b> Onyx lets each user connect an external tool (a helpdesk, a CRM) with their own login, and that login token is meant to stay private to them. CVE-2026-71424 is the bug where asking Onyx to list the connected servers hands back another user's token: whoever connected to each tool most recently. The cause is a storage slip: each person's private token was being copied into one shared record per tool, overwriting the previous one, and every user is allowed to read that record.
     </div>
 
     <div class="subhead">What I did</div>
@@ -298,10 +298,10 @@ POST /chat  { model: "&lt;valid-but-unprovisioned&gt;" }  -> upstream error, clo
 
     <div class="subhead">What happened</div>
     <ul>
-      <li>The response returned the full connection object for every MCP server in the org, including ones I never connected and didn't own.</li>
-      <li>For servers configured as per-user, the live OAuth Bearer token belonging to other users came back in plain text in the <code>Authorization</code> header field.</li>
+      <li>The response listed every MCP server in the org, including each server's auth headers, even for servers I had never connected and didn't own.</li>
+      <li>For each server configured as per-user, the live OAuth Bearer token of another user, whoever had connected most recently, came back in plain text in the <code>Authorization</code> header field.</li>
       <li>This is a published vulnerability, <b>CVE-2026-71424</b> (CVSS 9.6, CWE-200 and CWE-863), affecting the platform before versions 3.1.10, 3.2.14, and 4.0.0.</li>
-      <li>The root cause is a storage bug, not a simple permissions miss. Per-user tokens get written into a shared configuration row meant for org-wide servers, and the server-listing endpoint serializes that row, headers included, to whoever asks.</li>
+      <li>The root cause is a storage bug plus an exposure bug. Per-user tokens get copied into a shared template row meant to hold only the server's OAuth app settings, with each new login overwriting the last. The server-listing endpoint then returns that row's headers, unmasked, to any logged-in user.</li>
       <li>The platform's own status flags marked these tokens as active and connected.</li>
     </ul>
 
@@ -310,7 +310,7 @@ POST /chat  { model: "&lt;valid-but-unprovisioned&gt;" }  -> upstream error, clo
 -> server[5].auth_template.headers.Authorization: "Bearer •••" (user: user-b@{org}, anonymised)</pre>
 
     <figure>
-      <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How it should work versus what happened: per-user tokens should go to private rows, but all were written to one shared row any user can read.">
+      <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How it should work versus what happened: per-user tokens should go to private rows, but each login overwrote one shared row that any user can read.">
         <defs>
           <marker id="g" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#5eead4"/></marker>
           <marker id="r" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#ff6b6b"/></marker>
@@ -349,17 +349,17 @@ POST /chat  { model: "&lt;valid-but-unprovisioned&gt;" }  -> upstream error, clo
 
         <rect x="530" y="78" width="150" height="46" rx="7" fill="#1a0f12" stroke="#ff6b6b"/>
         <text x="605" y="98" text-anchor="middle" fill="#ff6b6b" font-family="monospace" font-size="11" font-weight="700">ONE shared row</text>
-        <text x="605" y="113" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">any user can read</text>
+        <text x="605" y="113" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">last login wins</text>
 
         <line x1="458" y1="63" x2="526" y2="95" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
         <line x1="458" y1="101" x2="526" y2="101" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
         <line x1="458" y1="139" x2="526" y2="107" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
 
         <line x1="605" y1="124" x2="605" y2="168" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#r)"/>
-        <text x="605" y="192" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">list endpoint returns</text>
-        <text x="605" y="206" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">every token to everyone</text>
+        <text x="605" y="192" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">any user can read the</text>
+        <text x="605" y="206" text-anchor="middle" fill="#ffb3b3" font-family="monospace" font-size="9.5">latest token per tool</text>
       </svg>
-      <figcaption>The storage slip: per-user tokens written into one shared row, then served to any authenticated user.</figcaption>
+      <figcaption>The storage slip: each login overwrites one shared row per tool, which is then served to any authenticated user.</figcaption>
     </figure>
 
     <div class="subhead">Why it matters</div>
