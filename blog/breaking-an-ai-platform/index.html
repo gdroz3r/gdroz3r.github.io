@@ -306,8 +306,8 @@ POST /chat  { model: "&lt;valid-but-unprovisioned&gt;" }  -> upstream error, clo
     </ul>
 
     <pre>GET /api/mcp/servers
--> server[3].auth_template.headers.Authorization: "Bearer 1000.•••" (user: user-a@{org}, anonymised)
--> server[5].auth_template.headers.Authorization: "Bearer 1000.•••" (user: user-b@{org}, anonymised)</pre>
+-> server[3].auth_template.headers.Authorization: "Bearer •••" (user: user-a@{org}, anonymised)
+-> server[5].auth_template.headers.Authorization: "Bearer •••" (user: user-b@{org}, anonymised)</pre>
 
     <figure>
       <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How it should work versus what happened: per-user tokens should go to private rows, but all were written to one shared row any user can read.">
